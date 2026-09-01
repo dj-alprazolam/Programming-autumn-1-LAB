@@ -24,7 +24,7 @@ jobs:
         run: cmake --build .
       
       - name: Run tests
-        run: cmake --build . --target test
+        run: ctest --output-on-failure
       
       - name: Build package
         run: cmake --build . --target package
@@ -50,12 +50,6 @@ jobs:
       - name: Install Boost
         run: choco install boost-msvc-14.3 -y
       
-      - name: Find Boost path
-        run: |
-          $boostPath = Get-ChildItem -Path "C:\local" -Directory -Filter "boost_*" | Select-Object -First 1 -ExpandProperty FullName
-          echo "BOOST_ROOT=$boostPath" >> $env:GITHUB_ENV
-          echo "Found Boost at: $boostPath"
-      
       - name: Configure CMake
         run: cmake . -DPATCH_VERSION=${{ github.run_number }}
       
@@ -63,7 +57,7 @@ jobs:
         run: cmake --build . --config Release
       
       - name: Run tests
-        run: cmake --build . --target test --config Release
+        run: ctest -C Release --output-on-failure
       
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
