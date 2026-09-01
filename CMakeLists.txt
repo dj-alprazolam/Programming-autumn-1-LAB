@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
 
-# ИЗМЕНЕНО: CACHE STRING позволяет GitHub Actions переопределять это значение через -DPATCH_VERSION=...
 set(PATCH_VERSION "1" CACHE STRING "Patch version")
 set(PROJECT_VERSION 1.0.${PATCH_VERSION})
 
@@ -10,7 +9,7 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-find_package(Boost CONFIG REQUIRED COMPONENTS unit_test_framework)
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 configure_file(version.h.in version.h)
 
