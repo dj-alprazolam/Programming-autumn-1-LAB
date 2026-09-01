@@ -32,21 +32,13 @@ jobs:
       - name: List generated packages
         run: ls -la *.deb || echo "No .deb files found"
       
-      - name: Create Release
-        id: create_release
+      - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: release-${{ github.run_number }}-ubuntu
           name: Release ${{ github.run_number }} (Ubuntu)
           draft: false
           prerelease: false
-          files: |
-            helloworld-1.0.${{ github.run_number }}-Linux.deb
-      
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: release-${{ github.run_number }}-ubuntu
           files: |
             helloworld-1.0.${{ github.run_number }}-Linux.deb
 
@@ -58,6 +50,12 @@ jobs:
       - name: Install Boost
         run: choco install boost-msvc-14.3 -y
       
+      - name: Find Boost path
+        run: |
+          $boostPath = Get-ChildItem -Path "C:\local" -Directory -Filter "boost_*" | Select-Object -First 1 -ExpandProperty FullName
+          echo "BOOST_ROOT=$boostPath" >> $env:GITHUB_ENV
+          echo "Found Boost at: $boostPath"
+      
       - name: Configure CMake
         run: cmake . -DPATCH_VERSION=${{ github.run_number }}
       
@@ -67,8 +65,7 @@ jobs:
       - name: Run tests
         run: cmake --build . --target test --config Release
       
-      - name: Create Release
-        id: create_release_win
+      - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: release-${{ github.run_number }}-windows
@@ -76,11 +73,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            helloworld_cli.exe
-      
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: release-${{ github.run_number }}-windows
-          files: |
-            helloworld_cli.exe
+            Release/helloworld_cli.exe
