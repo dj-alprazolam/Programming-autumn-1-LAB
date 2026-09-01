@@ -6,36 +6,81 @@ on:
       - main
       - feature/github_actions
 
+permissions: write-all
+
 jobs:
-  build:
+  build-ubuntu:
     runs-on: ubuntu-latest
-    permissions: write-all
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - run: sudo apt-get update && sudo apt-get install libboost-test-dev -y
-      - run: cmake . -DPATCH_VERSION=${{ github.run_number }}
-      - run: cmake --build .
-      - run: cmake --build . --target test
-      - run: cmake --build . --target package
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libboost-test-dev cmake g++
+      
+      - name: Configure CMake
+        run: cmake . -DPATCH_VERSION=${{ github.run_number }}
+      
+      - name: Build
+        run: cmake --build .
+      
+      - name: Run tests
+        run: cmake --build . --target test
+      
+      - name: Build package
+        run: cmake --build . --target package
+      
+      - name: List generated packages
+        run: ls -la *.deb || echo "No .deb files found"
+      
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.run_number }}
-          release_name: Release ${{ github.run_number }}
+          tag_name: release-${{ github.run_number }}-ubuntu
+          name: Release ${{ github.run_number }} (Ubuntu)
           draft: false
           prerelease: false
+          files: |
+            helloworld-1.0.${{ github.run_number }}-Linux.deb
+      
       - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./helloworld-0.0.${{ github.run_number }}-Linux.deb
-          asset_name: helloworld-0.0.${{ github.run_number }}-Linux.deb
-          asset_content_type: application/vnd.debian.binary-package
+          tag_name: release-${{ github.run_number }}-ubuntu
+          files: |
+            helloworld-1.0.${{ github.run_number }}-Linux.deb
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Boost
+        run: choco install boost-msvc-14.3 -y
+      
+      - name: Configure CMake
+        run: cmake . -DPATCH_VERSION=${{ github.run_number }}
+      
+      - name: Build
+        run: cmake --build . --config Release
+      
+      - name: Run tests
+        run: cmake --build . --target test --config Release
+      
+      - name: Create Release
+        id: create_release_win
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_number }}-windows
+          name: Release ${{ github.run_number }} (Windows)
+          draft: false
+          prerelease: false
+          files: |
+            helloworld_cli.exe
+      
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_number }}-windows
+          files: |
+            helloworld_cli.exe
