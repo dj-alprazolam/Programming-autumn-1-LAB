@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.30)
 
 set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
-set(PROJECT_VERSION 0.0.${PATCH_VERSION})
+set(PROJECT_VERSION 1.0.${PATCH_VERSION})
 
 project(helloworld VERSION ${PROJECT_VERSION})
 
-# === ИЗМЕНЕНО: Принудительная ДИНАМИЧЕСКАЯ линковка Boost для MinGW64 ===
-# Это решает проблему с '__imp_wcrtomb' и другими ошибками линковки в MSYS2
+
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-# ========================================================================
+
 
 find_package(Boost CONFIG REQUIRED COMPONENTS unit_test_framework)
 
@@ -29,6 +28,13 @@ target_include_directories(helloworld
     PRIVATE "${CMAKE_BINARY_DIR}"
 )
 
+target_include_directories(helloworld_cli
+    PRIVATE "${CMAKE_BINARY_DIR}"
+)
+
+target_include_directories(test_version
+    PRIVATE "${CMAKE_BINARY_DIR}"
+)
 target_link_libraries(helloworld_cli PRIVATE
     helloworld
 )
@@ -38,10 +44,9 @@ target_link_libraries(test_version PRIVATE
     helloworld
 )
 
-# === ДОБАВЛЕНО: Явное указание компилятору использовать динамический Boost.Test ===
-# Это гарантирует, что заголовочные файлы Boost сгенерируют правильные вызовы (__imp__)
+
 target_compile_definitions(test_version PRIVATE BOOST_TEST_DYN_LINK)
-# ==================================================================================
+
 
 if (MSVC)
     target_compile_options(helloworld_cli PRIVATE /W4)
