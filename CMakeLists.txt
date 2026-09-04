@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.29)
 
-set(PATCH_VERSION "1" )
+if(NOT DEFINED PATCH_VERSION)
+    set(PATCH_VERSION "1")
+endif()
+
 project(helloworld VERSION 1.0.${PATCH_VERSION} LANGUAGES CXX)
 
 
