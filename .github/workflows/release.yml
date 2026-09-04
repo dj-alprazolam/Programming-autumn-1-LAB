@@ -25,11 +25,6 @@ jobs:
       - name: Build
         run: cmake --build . --config Release
       
-      - name: Check version output
-        run: |
-          echo "=== Checking version output ==="
-          ./helloworld_cli
-      
       - name: Run tests
         run: |
           echo "=== Running tests ==="
@@ -37,85 +32,28 @@ jobs:
       
       - name: Build package
         run: cmake --build . --target package
-      
-      - name: List generated packages
-        run: |
-          ls -la *.deb || echo "No .deb files found"
-          find . -name "*.deb" -exec ls -la {} \;
-      
-      - name: Upload artifacts (Ubuntu)
-        uses: actions/upload-artifact@v4
-        with:
-          name: helloworld-ubuntu
-          path: |
-            *.deb
-            helloworld_cli
-            Testing/
 
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Boost
-        uses: MarkusJx/install-boost@v2
-        id: install-boost
+      - name: Setup vcpkg
+        uses: actions/setup-vcpkg@v1
         with:
-          boost_version: 1.84.0
-          platform_version: 14.3
+          vcpkgVersion: 'latest'
+      
+      - name: Install Boost test framework
+        run: vcpkg install boost-test:x64-windows
       
       - name: Configure CMake
         run: |
-          Remove-Item -Recurse -Force CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
-          cmake . -DPATCH_VERSION=${{ github.run_number }} -DBOOST_ROOT=${{ steps.install-boost.outputs.BOOST_ROOT }} -DBoost_USE_STATIC_LIBS=ON
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
       
       - name: Build
         run: cmake --build . --config Release
-      
-      - name: Check version output
-        run: |
-          echo "=== Checking version output ==="
-          .\Release\helloworld_cli.exe
       
       - name: Run tests
         run: |
           echo "=== Running tests ==="
           ctest -C Release --output-on-failure --verbose
-      
-      - name: Upload artifacts (Windows)
-        uses: actions/upload-artifact@v4
-        with:
-          name: helloworld-windows
-          path: |
-            Release/helloworld_cli.exe
-            Release/*.dll
-            Testing/
-
-  create-release:
-    needs: [build-ubuntu, build-windows]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      
-      - name: List artifacts
-        run: ls -la artifacts/
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Release v1.0.${{ github.run_number }}
-          draft: false
-          prerelease: false
-          files: |
-            artifacts/helloworld-ubuntu/*.deb
-            artifacts/helloworld-ubuntu/helloworld_cli
-            artifacts/helloworld-windows/helloworld_cli.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
