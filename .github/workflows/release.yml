@@ -31,7 +31,9 @@ jobs:
           ./helloworld_cli
       
       - name: Run tests
-        run: ctest --output-on-failure
+        run: |
+          echo "=== Running tests ==="
+          ctest --output-on-failure --verbose
       
       - name: Build package
         run: cmake --build . --target package
@@ -41,36 +43,33 @@ jobs:
           ls -la *.deb || echo "No .deb files found"
           find . -name "*.deb" -exec ls -la {} \;
       
-      - name: Upload artifact (Ubuntu)
+      - name: Upload artifacts (Ubuntu)
         uses: actions/upload-artifact@v4
         with:
           name: helloworld-ubuntu
           path: |
             *.deb
             helloworld_cli
+            Testing/
 
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install Boost (Windows)
-        run: |
-          choco install boost-msvc-14.3 --version=1.84.0 -y
-        continue-on-error: true
+      - name: Setup Boost
+        uses: MarkusJx/install-boost@v2
+        id: install-boost
+        with:
+          boost_version: 1.84.0
+          platform_version: 14.3
       
-      - name: Alternative Boost install
-        if: failure()
-        run: |
-          curl -L https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0-msvc-14.3-x64.exe -o boost.exe
-          ./boost.exe /S /D=C:\boost
-      
-      - name: Configure CMake (Windows)
+      - name: Configure CMake
         run: |
           Remove-Item -Recurse -Force CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
-          cmake . -DPATCH_VERSION=${{ github.run_number }} -DBOOST_ROOT=C:\boost -DBoost_NO_SYSTEM_PATHS=ON
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DBOOST_ROOT=${{ steps.install-boost.outputs.BOOST_ROOT }} -DBoost_USE_STATIC_LIBS=ON
       
-      - name: Build (Windows)
+      - name: Build
         run: cmake --build . --config Release
       
       - name: Check version output
@@ -79,15 +78,18 @@ jobs:
           .\Release\helloworld_cli.exe
       
       - name: Run tests
-        run: ctest -C Release --output-on-failure
+        run: |
+          echo "=== Running tests ==="
+          ctest -C Release --output-on-failure --verbose
       
-      - name: Upload artifact (Windows)
+      - name: Upload artifacts (Windows)
         uses: actions/upload-artifact@v4
         with:
           name: helloworld-windows
           path: |
             Release/helloworld_cli.exe
             Release/*.dll
+            Testing/
 
   create-release:
     needs: [build-ubuntu, build-windows]
