@@ -1,17 +1,25 @@
 cmake_minimum_required(VERSION 3.29)
 
 set(PATCH_VERSION "1" CACHE STRING "Patch version")
-set(PROJECT_VERSION 1.0.${PATCH_VERSION})
+project(helloworld VERSION 1.0.${PATCH_VERSION} LANGUAGES CXX)
 
-project(helloworld VERSION ${PROJECT_VERSION})
 
-set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
+
+if (MSVC)
+
+    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_RUNTIME OFF)
+else()
+
+    set(Boost_USE_STATIC_LIBS OFF)
+    set(Boost_USE_STATIC_RUNTIME OFF)
+endif()
 
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 configure_file(version.h.in version.h)
+
 
 add_executable(helloworld_cli main.cpp)
 add_library(helloworld lib.cpp)
@@ -28,22 +36,34 @@ target_include_directories(test_version PRIVATE "${CMAKE_BINARY_DIR}")
 
 target_link_libraries(helloworld_cli PRIVATE helloworld)
 
-target_link_libraries(test_version PRIVATE
-    Boost::unit_test_framework
+target_link_libraries(test_version PRIVATE 
+    Boost::unit_test_framework 
     helloworld
 )
 
-target_compile_definitions(test_version PRIVATE BOOST_TEST_DYN_LINK)
 
 if (MSVC)
+
     target_compile_options(helloworld_cli PRIVATE /W4)
     target_compile_options(helloworld PRIVATE /W4)
     target_compile_options(test_version PRIVATE /W4)
-else ()
-    target_compile_options(helloworld_cli PRIVATE -Wall -Wextra -pedantic -Werror)
-    target_compile_options(helloworld PRIVATE -Wall -Wextra -pedantic -Werror)
-    target_compile_options(test_version PRIVATE -Wall -Wextra -pedantic -Werror)
+
+else()
+
+    target_compile_definitions(test_version PRIVATE BOOST_TEST_DYN_LINK)
+    
+    if (MINGW)
+
+        target_compile_options(helloworld_cli PRIVATE -Wall -Wextra -pedantic)
+        target_compile_options(helloworld PRIVATE -Wall -Wextra -pedantic)
+        target_compile_options(test_version PRIVATE -Wall -Wextra -pedantic)
+    else()
+        target_compile_options(helloworld_cli PRIVATE -Wall -Wextra -pedantic -Werror)
+        target_compile_options(helloworld PRIVATE -Wall -Wextra -pedantic -Werror)
+        target_compile_options(test_version PRIVATE -Wall -Wextra -pedantic -Werror)
+    endif()
 endif()
+
 
 install(TARGETS helloworld_cli RUNTIME DESTINATION bin)
 
@@ -52,7 +72,7 @@ set(CPACK_PACKAGE_NAME "helloworld")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
-set(CPACK_PACKAGE_CONTACT "example@example.com")
+set(CPACK_PACKAGE_CONTACT "student@example.com")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Student")
 
 include(CPack)
