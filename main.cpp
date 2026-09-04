@@ -3,7 +3,7 @@
 #include <iostream>
 
 int main(int, char**) {
-    std::cout << "Hello, World! VersЫion " 
+    std::cout << "Hello, World! Version " 
               << VERSION_MAJOR << "." 
               << VERSION_MINOR << "." 
               << VERSION_PATCH 

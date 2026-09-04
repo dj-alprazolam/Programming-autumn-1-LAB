@@ -23,6 +23,10 @@ jobs:
       - name: Build
         run: cmake --build .
       
+      # ДОБАВЛЕНО: Проверка вывода версии на Ubuntu
+      - name: Check version output
+        run: ./helloworld_cli
+      
       - name: Run tests
         run: ctest --output-on-failure
       
@@ -55,6 +59,10 @@ jobs:
       
       - name: Build
         run: cmake --build . --config Release
+      
+      # ДОБАВЛЕНО: Проверка вывода версии на Windows
+      - name: Check version output
+        run: .\Release\helloworld_cli.exe
       
       - name: Run tests
         run: ctest -C Release --output-on-failure
