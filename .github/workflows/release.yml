@@ -23,7 +23,7 @@ jobs:
           cmake . -DPATCH_VERSION=${{ github.run_number }}
       
       - name: Build
-        run: cmake --build .
+        run: cmake --build . --config Release
       
       - name: Check version output
         run: |
@@ -37,32 +37,40 @@ jobs:
         run: cmake --build . --target package
       
       - name: List generated packages
-        run: ls -la *.deb || echo "No .deb files found"
+        run: |
+          ls -la *.deb || echo "No .deb files found"
+          find . -name "*.deb" -exec ls -la {} \;
       
-      - name: Create Release and Upload Asset
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifact (Ubuntu)
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: release-${{ github.run_number }}-ubuntu
-          name: Release ${{ github.run_number }} (Ubuntu)
-          draft: false
-          prerelease: false
-          files: |
-            helloworld-1.0.${{ github.run_number }}-Linux.deb
+          name: helloworld-ubuntu
+          path: |
+            *.deb
+            helloworld_cli
 
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install Boost
-        run: choco install boost-msvc-14.3 -y
+      - name: Install Boost (Windows)
+        run: |
+          choco install boost-msvc-14.3 --version=1.84.0 -y
+        continue-on-error: true
       
-      - name: Configure CMake
+      - name: Alternative Boost install
+        if: failure()
+        run: |
+          curl -L https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0-msvc-14.3-x64.exe -o boost.exe
+          ./boost.exe /S /D=C:\boost
+      
+      - name: Configure CMake (Windows)
         run: |
           Remove-Item -Recurse -Force CMakeCache.txt, CMakeFiles -ErrorAction SilentlyContinue
-          cmake . -DPATCH_VERSION=${{ github.run_number }}
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DBOOST_ROOT=C:\boost -DBoost_NO_SYSTEM_PATHS=ON
       
-      - name: Build
+      - name: Build (Windows)
         run: cmake --build . --config Release
       
       - name: Check version output
@@ -73,12 +81,39 @@ jobs:
       - name: Run tests
         run: ctest -C Release --output-on-failure
       
-      - name: Create Release and Upload Asset
+      - name: Upload artifact (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: helloworld-windows
+          path: |
+            Release/helloworld_cli.exe
+            Release/*.dll
+
+  create-release:
+    needs: [build-ubuntu, build-windows]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: List artifacts
+        run: ls -la artifacts/
+      
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: release-${{ github.run_number }}-windows
-          name: Release ${{ github.run_number }} (Windows)
+          tag_name: v1.0.${{ github.run_number }}
+          name: Release v1.0.${{ github.run_number }}
           draft: false
           prerelease: false
           files: |
-            Release/helloworld_cli.exe
+            artifacts/helloworld-ubuntu/*.deb
+            artifacts/helloworld-ubuntu/helloworld_cli
+            artifacts/helloworld-windows/helloworld_cli.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
